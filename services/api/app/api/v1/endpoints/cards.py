@@ -11,28 +11,21 @@ from sqlalchemy import select, and_
 from app.db.session import get_db
 from app.models.models import User, Card
 from app.schemas.schemas import CardCreate, CardUpdate, CardResponse, CardListResponse
+from app.core.security import get_current_user, get_current_active_user
 
 router = APIRouter()
 
 
-async def get_current_user(db: AsyncSession = Depends(get_db)) -> User:
-    """Get current authenticated user (placeholder for JWT auth)."""
-    # TODO: Implement JWT verification
-    # For now, return first user for testing
-    result = await db.execute(select(User).limit(1))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
-        )
-    return user
-
-
-@router.post("", response_model=CardResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=CardResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a new credit card",
+    description="Add a credit card to your account. Only last 4 digits and bank info is stored."
+)
 async def create_card(
     card_data: CardCreate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Add a new credit card."""
@@ -75,9 +68,14 @@ async def create_card(
     return card
 
 
-@router.get("", response_model=CardListResponse)
+@router.get(
+    "",
+    response_model=CardListResponse,
+    summary="List all credit cards",
+    description="Get all credit cards associated with the authenticated user."
+)
 async def list_cards(
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """List all user's credit cards."""
@@ -91,10 +89,15 @@ async def list_cards(
     return CardListResponse(cards=list(cards))
 
 
-@router.get("/{card_id}", response_model=CardResponse)
+@router.get(
+    "/{card_id}",
+    response_model=CardResponse,
+    summary="Get card details",
+    description="Get details of a specific credit card."
+)
 async def get_card(
     card_id: UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Get a specific card."""
@@ -113,11 +116,16 @@ async def get_card(
     return card
 
 
-@router.patch("/{card_id}", response_model=CardResponse)
+@router.patch(
+    "/{card_id}",
+    response_model=CardResponse,
+    summary="Update card",
+    description="Update credit card details (nickname, color, active status)."
+)
 async def update_card(
     card_id: UUID,
     card_data: CardUpdate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Update a credit card."""
@@ -144,10 +152,15 @@ async def update_card(
     return card
 
 
-@router.delete("/{card_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{card_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete card",
+    description="Soft delete a credit card (marks as inactive)."
+)
 async def delete_card(
     card_id: UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Delete a credit card."""

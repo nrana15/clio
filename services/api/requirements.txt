@@ -1,49 +1,49 @@
-# FastAPI
+# CLIO API Requirements
+# Python 3.12+
+
+# Web Framework
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
+python-multipart==0.0.6
 
 # Database
 sqlalchemy[asyncio]==2.0.25
 asyncpg==0.29.0
-psycopg2-binary==2.9.9
 alembic==1.13.1
 
 # Redis
 redis==5.0.1
 
-# Authentication
-pyjwt==2.8.0
-passlib[bcrypt]==1.7.4
+# Authentication & Security
 python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-jose==3.3.0
 
-# Object Storage
-boto3==1.34.0
-minio==7.2.0
-
-# Validation & Parsing
+# Configuration
 pydantic==2.5.3
 pydantic-settings==2.1.0
-email-validator==2.1.0
+python-dotenv==1.0.0
 
-# Utils
-python-multipart==0.0.6
-python-magic==0.4.27
-pillow==10.2.0
-pytesseract==0.3.10
-pymupdf==1.23.8
+# Validation
+email-validator==2.1.0.post1
 
-# Logging & Monitoring
+# HTTP Client (for testing)
+httpx==0.26.0
+
+# Logging
 structlog==24.1.0
-prometheus-client==0.19.0
 
-# Development
+# Testing
 pytest==7.4.4
 pytest-asyncio==0.23.3
-httpx==0.26.0
-black==24.1.0
+pytest-cov==4.1.0
+factory-boy==3.3.0
+
+# Development
+black==24.1.1
 isort==5.13.2
 flake8==7.0.0
 mypy==1.8.0
 
-# Security
- cryptography==42.0.0
+# Production
+gunicorn==21.2.0

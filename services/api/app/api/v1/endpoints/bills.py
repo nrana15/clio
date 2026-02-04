@@ -1,11 +1,11 @@
 """
 Bill management endpoints
 """
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
@@ -16,14 +16,20 @@ from app.schemas.schemas import (
     BillCreateFromUpload, BillUpdate, BillResponse, BillListResponse,
     BillDashboardResponse, BillConfirmPaid
 )
-from app.api.v1.endpoints.cards import get_current_user
+from app.core.security import get_current_active_user
+from app.core.request_id import get_request_id
 
 router = APIRouter()
 
 
-@router.get("/dashboard", response_model=BillDashboardResponse)
+@router.get(
+    "/dashboard",
+    response_model=BillDashboardResponse,
+    summary="Get dashboard data",
+    description="Get dashboard overview with next due bill, upcoming bills, and totals."
+)
 async def get_dashboard(
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Get dashboard data with next due bill and upcoming bills."""
@@ -82,11 +88,16 @@ async def get_dashboard(
     )
 
 
-@router.get("", response_model=BillListResponse)
+@router.get(
+    "",
+    response_model=BillListResponse,
+    summary="List all bills",
+    description="Get all bills with optional filters (status, card_id)."
+)
 async def list_bills(
-    status: Optional[str] = Query(None, description="Filter by status"),
-    card_id: Optional[UUID] = Query(None, description="Filter by card"),
-    user: User = Depends(get_current_user),
+    status: Optional[str] = Query(None, description="Filter by status: pending_review, unpaid, paid_confirmed"),
+    card_id: Optional[UUID] = Query(None, description="Filter by card ID"),
+    user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """List all user's bills with optional filters."""
@@ -123,10 +134,15 @@ async def list_bills(
     )
 
 
-@router.get("/{bill_id}", response_model=BillResponse)
+@router.get(
+    "/{bill_id}",
+    response_model=BillResponse,
+    summary="Get bill details",
+    description="Get detailed information about a specific bill."
+)
 async def get_bill(
     bill_id: UUID,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Get a specific bill."""
@@ -146,11 +162,17 @@ async def get_bill(
     return bill
 
 
-@router.patch("/{bill_id}", response_model=BillResponse)
+@router.patch(
+    "/{bill_id}",
+    response_model=BillResponse,
+    summary="Update bill",
+    description="Update extracted bill data for review/correction."
+)
 async def update_bill(
+    request: Request,
     bill_id: UUID,
     bill_data: BillUpdate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Update bill data (for review/correction)."""
@@ -180,17 +202,32 @@ async def update_bill(
     if bill.requires_review and bill.reviewed_by_user:
         bill.requires_review = False
     
+    # TODO: Create audit log entry
+    # await create_audit_log(
+    #     user_id=user.id,
+    #     action="bill_updated",
+    #     resource_type="bill",
+    #     resource_id=bill.id,
+    #     request=request
+    # )
+    
     await db.commit()
     await db.refresh(bill)
     
     return bill
 
 
-@router.post("/{bill_id}/confirm-paid", response_model=BillResponse)
+@router.post(
+    "/{bill_id}/confirm-paid",
+    response_model=BillResponse,
+    summary="Confirm bill paid",
+    description="Manually mark a bill as paid."
+)
 async def confirm_bill_paid(
+    request: Request,
     bill_id: UUID,
     confirm_data: BillConfirmPaid,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Manually mark a bill as paid."""
@@ -213,10 +250,18 @@ async def confirm_bill_paid(
             detail="Bill not found"
         )
     
-    from datetime import datetime
     bill.status = BillStatus.PAID_CONFIRMED
     bill.paid_confirmed_at = datetime.utcnow()
     bill.paid_confirmed_by = "user"
+    
+    # TODO: Create audit log entry
+    # await create_audit_log(
+    #     user_id=user.id,
+    #     action="bill_paid_confirmed",
+    #     resource_type="bill",
+    #     resource_id=bill.id,
+    #     request=request
+    # )
     
     await db.commit()
     await db.refresh(bill)
