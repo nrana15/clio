@@ -50,6 +50,23 @@ class Settings(BaseSettings):
     # Push Notifications
     fcm_server_key: Optional[str] = None
     
+    # Prometheus Metrics
+    enable_metrics: bool = True
+    metrics_port: int = 9090
+    
+    # Celery
+    celery_broker_url: Optional[str] = None
+    celery_result_backend: Optional[str] = None
+    
+    @property
+    def celery_config(self) -> dict:
+        broker = self.celery_broker_url or self.redis_url
+        backend = self.celery_result_backend or self.redis_url
+        return {
+            "broker_url": broker,
+            "result_backend": backend,
+        }
+    
     @property
     def allowed_upload_mime_types(self) -> list[str]:
         return [t.strip() for t in self.allowed_upload_types.split(",")]

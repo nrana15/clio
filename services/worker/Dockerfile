@@ -1,36 +1,43 @@
-# Celery Worker for CLIO
-# For local development only; auto-reloads on changes
+# syntax=docker/dockerfile:1
 
-FROM python:3.11-slim
+FROM python:3.11-slim as builder
 
 WORKDIR /app
 
-# Install system dependencies for Tesseract OCR and PDF processing
-RUN apt-get update && apt-get install -y \
-    tesseract-ocr \
-    tesseract-ocr-chi-tra \
-    tesseract-ocr-chi-sim \
-    tesseract-ocr-eng \
-    libtesseract-dev \
-    libleptonica-dev \
-    poppler-utils \
-    libmagic1 \
-    libmagic-dev \
-    curl \
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# Production stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    tesseract-ocr \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python packages from builder
+COPY --from=builder /root/.local /root/.local
+
+# Make sure scripts in .local are usable
+ENV PATH=/root/.local/bin:$PATH
 
 # Copy application code
-COPY . .
+COPY app/ ./app/
 
-# Create directories for temporary file processing
-RUN mkdir -p /tmp/clio_processing
+# Create non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
 
-ENV PYTHONPATH=/app
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-CMD ["celery", "-A", "app.worker", "worker", "--loglevel=info", "--concurrency=2"]
+# Default to worker, can be overridden for beat scheduler
+CMD ["celery", "-A", "app.tasks", "worker", "-l", "info", "-c", "4"]
