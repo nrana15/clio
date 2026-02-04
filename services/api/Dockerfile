@@ -19,6 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Create alembic directories if they don't exist
+RUN mkdir -p alembic/versions
+
 # Fix permissions
 RUN chmod -R 755 /app
 
@@ -27,5 +30,5 @@ USER root
 
 EXPOSE 8000
 
-# Use python module syntax instead of direct commands
-CMD ["sh", "-c", "python -m alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Check if alembic.ini exists, if not skip migrations
+CMD ["sh", "-c", "if [ -f alembic.ini ]; then python -m alembic upgrade head; fi && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
