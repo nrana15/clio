@@ -1,11 +1,10 @@
 # Celery Worker for CLIO
-# For local development only; auto-reloads on changes
 
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for Tesseract OCR and PDF processing
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     tesseract-ocr-chi-tra \
@@ -29,9 +28,9 @@ COPY . .
 # Fix permissions
 RUN chmod -R 755 /app
 
-# Use python module syntax
+# Environment
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Run celery using python module
+# Default to worker, can be overridden
 CMD ["python", "-m", "celery", "-A", "app.worker", "worker", "--loglevel=info", "--concurrency=2"]

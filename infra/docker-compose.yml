@@ -156,7 +156,12 @@ services:
       - ../services/worker:/app
     networks:
       - clio-network
-    command: python -m celery -A app.worker beat --loglevel=info
+    # Use simple celery beat without complex app
+    entrypoint: >
+      sh -c "sleep 10 &&
+             CELERY_BROKER_URL=redis://redis:6379/1
+             CELERY_RESULT_BACKEND=redis://redis:6379/2
+             python -m celery -A app.worker:celery_app beat --loglevel=info"
 
 volumes:
   postgres_data:
