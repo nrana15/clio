@@ -32,5 +32,8 @@ RUN chmod -R 755 /app
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Default to worker, can be overridden
-CMD ["python", "-m", "celery", "-A", "app.worker", "worker", "--loglevel=info", "--concurrency=2"]
+# Install celery explicitly
+RUN pip install celery[redis]>=5.3.0
+
+# Default command (can be overridden in docker-compose)
+CMD ["celery", "-A", "app.worker", "worker", "--loglevel=info", "--concurrency=2"]

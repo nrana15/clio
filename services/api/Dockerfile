@@ -12,23 +12,21 @@ RUN apt-get update && apt-get install -y \
     tesseract-ocr-chi-sim \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies as root
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Create alembic directories if they don't exist
+# Create alembic directories
 RUN mkdir -p alembic/versions
 
 # Fix permissions
 RUN chmod -R 755 /app
 
-# Run as root (simpler for Windows)
-USER root
-
 EXPOSE 8000
 
-# Check if alembic.ini exists, if not skip migrations
-CMD ["sh", "-c", "if [ -f alembic.ini ]; then python -m alembic upgrade head; fi && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Run migrations then start server
+# Use alembic directly, not python -m alembic
+CMD sh -c "alembic upgrade head 2>/dev/null || echo 'No migrations to run' && uvicorn app.main:app --host 0.0.0.0 --port 8000"

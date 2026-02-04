@@ -68,7 +68,7 @@ services:
     entrypoint: >
       /bin/sh -c "
       /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
-      /usr/bin/mc mb myminio/${MINIO_BUCKET:-clio-statements} || true;
+      /usr/bin/mc mb myminio/${MINIO_BUCKET:-clio-statements} 2>/dev/null || true;
       /usr/bin/mc policy set private myminio/${MINIO_BUCKET:-clio-statements};
       exit 0;
       "
@@ -106,7 +106,6 @@ services:
       - ../services/api:/app
     networks:
       - clio-network
-    # Command is now in Dockerfile
 
   # Worker Service (Celery)
   worker:
@@ -125,17 +124,13 @@ services:
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
       - MINIO_BUCKET=${MINIO_BUCKET:-clio-statements}
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
+      - redis
     volumes:
       - ../services/worker:/app
     networks:
       - clio-network
-    # Command is now in Dockerfile
+    # Use celery directly with proper app path
+    command: celery -A app.worker worker --loglevel=info --concurrency=2
 
   # Celery Beat (Scheduler)
   beat:
@@ -151,17 +146,12 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/2
     depends_on:
       - redis
-      - postgres
     volumes:
       - ../services/worker:/app
     networks:
       - clio-network
-    # Use simple celery beat without complex app
-    entrypoint: >
-      sh -c "sleep 10 &&
-             CELERY_BROKER_URL=redis://redis:6379/1
-             CELERY_RESULT_BACKEND=redis://redis:6379/2
-             python -m celery -A app.worker:celery_app beat --loglevel=info"
+    # Use celery directly with proper app path
+    command: celery -A app.worker beat --loglevel=info
 
 volumes:
   postgres_data:
