@@ -106,9 +106,7 @@ services:
       - ../services/api:/app
     networks:
       - clio-network
-    command: >
-      sh -c "alembic upgrade head && 
-             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    # Command is now in Dockerfile
 
   # Worker Service (Celery)
   worker:
@@ -137,8 +135,7 @@ services:
       - ../services/worker:/app
     networks:
       - clio-network
-    command: >
-      celery -A app.worker worker --loglevel=info --concurrency=2
+    # Command is now in Dockerfile
 
   # Celery Beat (Scheduler)
   beat:
@@ -159,8 +156,7 @@ services:
       - ../services/worker:/app
     networks:
       - clio-network
-    command: >
-      celery -A app.worker beat --loglevel=info
+    command: python -m celery -A app.worker beat --loglevel=info
 
 volumes:
   postgres_data:

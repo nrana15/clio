@@ -1,43 +1,37 @@
-# syntax=docker/dockerfile:1
+# Celery Worker for CLIO
+# For local development only; auto-reloads on changes
 
-FROM python:3.11-slim as builder
-
-WORKDIR /app
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
-
-# Production stage
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
+# Install system dependencies for Tesseract OCR and PDF processing
+RUN apt-get update && apt-get install -y \
     tesseract-ocr \
+    tesseract-ocr-chi-tra \
+    tesseract-ocr-chi-sim \
+    tesseract-ocr-eng \
+    libtesseract-dev \
+    libleptonica-dev \
     poppler-utils \
+    libmagic1 \
+    libmagic-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
-
-# Make sure scripts in .local are usable
-ENV PATH=/root/.local/bin:$PATH
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app/ ./app/
+COPY . .
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
+# Fix permissions
+RUN chmod -R 755 /app
 
-# Default to worker, can be overridden for beat scheduler
-CMD ["celery", "-A", "app.tasks", "worker", "-l", "info", "-c", "4"]
+# Use python module syntax
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Run celery using python module
+CMD ["python", "-m", "celery", "-A", "app.worker", "worker", "--loglevel=info", "--concurrency=2"]
