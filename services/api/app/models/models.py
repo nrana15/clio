@@ -243,7 +243,7 @@ class AuditLog(Base):
     request_id = Column(String(100), nullable=True, index=True)
     
     # Action payload (sanitized - no PII, no statement content)
-    metadata = Column(JSONB, nullable=True)
+    meta_data = Column(JSONB, nullable=True)
     
     # Timestamp
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
