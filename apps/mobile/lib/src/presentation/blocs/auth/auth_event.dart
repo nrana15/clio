@@ -1,3 +1,5 @@
+part of 'auth_bloc.dart';
+
 import 'package:equatable/equatable.dart';
 
 abstract class AuthEvent extends Equatable {
@@ -38,3 +40,5 @@ class AuthOtpSubmitted extends AuthEvent {
 }
 
 class AuthLogoutRequested extends AuthEvent {}
+
+class AuthCheckRequested extends AuthEvent {}

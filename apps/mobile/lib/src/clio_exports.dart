@@ -8,8 +8,6 @@ export 'data/services/auth_service.dart';
 
 // Presentation - Blocs
 export 'presentation/blocs/auth/auth_bloc.dart';
-export 'presentation/blocs/auth/auth_event.dart';
-export 'presentation/blocs/auth/auth_state.dart';
 
 // Presentation - Screens
 export 'presentation/screens/auth/login_screen.dart';

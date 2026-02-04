@@ -7,6 +7,7 @@ import 'src/core/security/secure_lifecycle.dart';
 import 'src/core/security/security_check.dart';
 import 'src/core/theme/app_theme.dart';
 import 'src/presentation/blocs/auth/auth_bloc.dart';
+export 'src/presentation/blocs/auth/auth_bloc.dart';
 import 'src/presentation/screens/auth/login_screen.dart';
 import 'src/presentation/screens/main/main_screen.dart';
 import 'src/presentation/screens/splash/splash_screen.dart';
